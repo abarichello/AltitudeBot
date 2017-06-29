@@ -1,3 +1,4 @@
+from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton)
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Job
 import logging
 
@@ -5,16 +6,27 @@ updater = Updater(token='')
 dispatcher = updater.dispatcher
 job = updater.job_queue
 
+
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def start(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text="Send ur location lul")
+    button = KeyboardButton("Send your location", request_location=True)
+    keyboard = ReplyKeyboardMarkup([[button]])
+    update.message.reply_text("Hi! Press the button to send me your location!", reply_markup=keyboard)
+
+def location(bot, update):
+    location = update.message.location
+    update.message.reply_text(f"latitude:{location.latitude}, longitude:{location.longitude}")
+
+def my_location(bot, update):
+    if location is None:
+        update.message.reply_text("Send me your location first!")
+    else:
+        update.message.reply_text(location)
 
 def echo(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="Send location with /location")
-
-def location(bot, update):
-	bot.send_Message(chat_id=update.message.chat_id, text="Send your location", reply_markup=ReplyKeyboardMarkwup([[KeyboardButton("label", request_location=True)]]))
 
 def help(bot, update):
 	bot.send_message(chat_id=update.message.chat_id, text="useful help text")
@@ -22,19 +34,16 @@ def help(bot, update):
 def unknown(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="That command does not exist!")
 
-start_handler = CommandHandler('start', start)
-dispatcher.add_handler(start_handler)
+dispatcher.add_handler(CommandHandler('start', start))
 
-echo_handler = MessageHandler(Filters.text, echo)
-dispatcher.add_handler(echo_handler)
- 
-help_handler = MessageHandler('help', help)
-dispatcher.add_handler(help_handler)
+dispatcher.add_handler(MessageHandler(Filters.location, location))
 
-location_handler = MessageHandler('location', location)
-dispatcher.add_handler(location_handler)
+dispatcher.add_handler(CommandHandler('mylocation', my_location))
 
-unknown_handler = MessageHandler(Filters.command, unknown)
-dispatcher.add_handler(unknown_handler)
+dispatcher.add_handler(MessageHandler(Filters.text, echo))
+
+dispatcher.add_handler(CommandHandler('help', help))
+
+dispatcher.add_handler(MessageHandler(Filters.command, unknown))
 
 updater.start_polling()
