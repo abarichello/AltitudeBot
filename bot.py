@@ -1,7 +1,8 @@
-from config import TOKEN
+from config import TOKEN, GKEY
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton)
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Job
-import logging
+from googlemaps import convert, elevation
+import logging, requests, json
 
 updater = Updater(token=TOKEN)
 dispatcher = updater.dispatcher
@@ -17,7 +18,17 @@ def start(bot, update):
 
 def location(bot, update):
     location = update.message.location
-    update.message.reply_text("latitude: {}, longitude: {}".format(location.latitude, location.longitude))
+    latitude = location.latitude
+    longitude = location.longitude
+    update.message.reply_text("latitude: {}, longitude: {}".format(latitude, longitude))
+    response = requests.get('https://maps.googleapis.com/maps/api/elevation/json?locations={},{}&key={}'.format(latitude,longitude,GKEY))
+    data = response.json()
+    user_elevation = (data["results"][0]["elevation"])
+    update.message.reply_text("Your current height is: {} meters".format(user_elevation))
+
+    print(response.status_code)
+    print(data)
+    print(user_elevation)
 
 def my_location(bot, update):    
     update.message.reply_text(location)
