@@ -2,6 +2,7 @@ from config import TOKEN, GKEY
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton)
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Job
 from googlemaps import convert, elevation
+from pprint import pprint
 import logging, requests, json
 
 updater = Updater(token=TOKEN)
@@ -18,17 +19,25 @@ def start(bot, update):
 
 def location(bot, update):
     location = update.message.location
-    latitude = location.latitude
-    longitude = location.longitude
+
+    elevation(bot, update, location.latitude, location.longitude)
+
+def elevation(bot, update, latitude, longitude):
+    username = update.message.from_user.username
     update.message.reply_text("latitude: {}, longitude: {}".format(latitude, longitude))
     response = requests.get('https://maps.googleapis.com/maps/api/elevation/json?locations={},{}&key={}'.format(latitude,longitude,GKEY))
     data = response.json()
-    user_elevation = (data["results"][0]["elevation"])
-    update.message.reply_text("Your current height is: {} meters".format(user_elevation))
+    
+    altitude = (data["results"][0]["elevation"])
+    update.message.reply_text("Hi, @{}! your current height is: {} meters".format(username,altitude))
 
+    #Log user name and altitude here
     print(response.status_code)
-    print(data)
-    print(user_elevation)
+    pprint(data)
+    print(username)
+    #pprint(update.message.from_user.__dict__)
+    #pprint(bot.__dict__)
+    print(altitude)
 
 def my_location(bot, update):    
     update.message.reply_text(location)
