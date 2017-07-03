@@ -1,9 +1,13 @@
 from config import TOKEN, GKEY
+from os import environ
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton)
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Job
 from googlemaps import convert, elevation
 from pprint import pprint
-import logging, requests, json
+from datetime import datetime
+from pymongo import MongoClient
+
+import logging, requests, json, sys
 
 updater = Updater(token=TOKEN)
 dispatcher = updater.dispatcher
@@ -12,6 +16,18 @@ job = updater.job_queue
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+MONGODB_URI = environ['MONGODB_URI']
+
+client = MongoClient()
+db = client.get_default_database
+
+HELP_STRING = ("""
+helpfull text
+""").strip('\n')
+
+f = open("log.txt", "a+")
+altitudes_file = open("altitudes.txt", "r")
+
 def start(bot, update):
     button = KeyboardButton("Send your location", request_location=True)
     keyboard = ReplyKeyboardMarkup([[button]])
@@ -19,7 +35,6 @@ def start(bot, update):
 
 def location(bot, update):
     location = update.message.location
-
     elevation(bot, update, location.latitude, location.longitude)
 
 def elevation(bot, update, latitude, longitude):
@@ -30,23 +45,23 @@ def elevation(bot, update, latitude, longitude):
     
     altitude = (data["results"][0]["elevation"])
     update.message.reply_text("Hi, @{}! your current height is: {} meters".format(username,altitude))
+    #Log user name, altitude and city here
 
-    #Log user name and altitude here
-    print(response.status_code)
-    pprint(data)
-    print(username)
-    #pprint(update.message.from_user.__dict__)
-    #pprint(bot.__dict__)
-    print(altitude)
+    #Open and write status_code to logger.txt    
+    f.write(str(response.status_code)+'\n')
+    f.write(str(data)+'\n')
+    currentTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    f.write(currentTime+'\n')
+    f.write('\n')
 
-def my_location(bot, update):    
-    update.message.reply_text(location)
+    currentShortTime = datetime.now().strftime('%d-%m-%Y')
+    print(str(altitude)+ ' @'+username+' Date:'+ currentShortTime)
 
 def echo(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="Start me with /start and send me your location.")
 
 def help(bot, update):
-	bot.send_message(chat_id=update.message.chat_id, text="useful help text")
+	bot.send_message(chat_id=update.message.chat_id, text=HELP_STRING)
 
 def unknown(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="That command does not exist!")
@@ -54,8 +69,6 @@ def unknown(bot, update):
 dispatcher.add_handler(CommandHandler('start', start))
 
 dispatcher.add_handler(MessageHandler(Filters.location, location))
-
-dispatcher.add_handler(CommandHandler('mylocation', my_location))
 
 dispatcher.add_handler(MessageHandler(Filters.text, echo))
 
