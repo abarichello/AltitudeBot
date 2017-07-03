@@ -16,7 +16,7 @@ job = updater.job_queue
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-MONGODB_URI = environ['MONGODB_URI']
+#MONGODB_URI = environ['MONGODB_URI']
 
 client = MongoClient()
 db = client.get_default_database
@@ -24,9 +24,6 @@ db = client.get_default_database
 HELP_STRING = ("""
 helpfull text
 """).strip('\n')
-
-f = open("log.txt", "a+")
-altitudes_file = open("altitudes.txt", "r")
 
 def start(bot, update):
     button = KeyboardButton("Send your location", request_location=True)
@@ -38,6 +35,8 @@ def location(bot, update):
     elevation(bot, update, location.latitude, location.longitude)
 
 def elevation(bot, update, latitude, longitude):
+    altitudes_file = open("altitudes.txt", "a+")
+    
     username = update.message.from_user.username
     update.message.reply_text("latitude: {}, longitude: {}".format(latitude, longitude))
     response = requests.get('https://maps.googleapis.com/maps/api/elevation/json?locations={},{}&key={}'.format(latitude,longitude,GKEY))
@@ -48,15 +47,17 @@ def elevation(bot, update, latitude, longitude):
     #Log user name, altitude and city here
 
     #Open and write status_code to logger.txt    
-    f.write(str(response.status_code)+'\n')
-    f.write(str(data)+'\n')
-    currentTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    f.write(currentTime+'\n')
-    f.write('\n')
+    with open("log.txt", "a+") as f:
+        f.write(str(response.status_code)+'\n')
+        f.write(str(data)+'\n')
+        currentTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        f.write(currentTime+'\n')
+        f.write('\n')
 
-    currentShortTime = datetime.now().strftime('%d-%m-%Y')
-    print(str(altitude)+ ' @'+username+' Date:'+ currentShortTime)
-
+    with open("altitudes.txt", "a+") as altitude_file:
+        currentShortTime = datetime.now().strftime('%d-%m-%Y')
+        altitude_file.write(str(altitude)+ ' @'+username+' Date:'+ currentShortTime)
+    
 def echo(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="Start me with /start and send me your location.")
 
