@@ -5,9 +5,8 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Job
 from googlemaps import convert, elevation
 from pprint import pprint
 from datetime import datetime
-from pymongo import MongoClient
 
-import logging, requests, json, sys
+import logging, requests, json, sys, pymongo
 
 updater = Updater(token=TOKEN)
 dispatcher = updater.dispatcher
@@ -16,18 +15,23 @@ job = updater.job_queue
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-#MONGODB_URI = environ['MONGODB_URI']
-
-client = MongoClient()
-db = client.get_default_database
-
 HELP_STRING = ("""
 helpfull text
 """).strip('\n')
 
+try:
+    conn = pymongo.MongoClient()
+    print('connected')
+except pymongo.errors.ConnectionFailure:
+    print("could not connect")
+    pass
+ 		 
+db = conn['altitudes']
+collection = db.altitude
+  
 def start(bot, update):
     button = KeyboardButton("Send your location", request_location=True)
-    keyboard = ReplyKeyboardMarkup([[button]])
+    keyboard = ReplyKeyboardMarkup([[button]],resize_keyboard=True,one_time_keyboard=True)
     update.message.reply_text("Hi! Press the button to send me your location!", reply_markup=keyboard)
 
 def location(bot, update):
@@ -35,13 +39,11 @@ def location(bot, update):
     elevation(bot, update, location.latitude, location.longitude)
 
 def elevation(bot, update, latitude, longitude):
-    altitudes_file = open("altitudes.txt", "a+")
-    
     username = update.message.from_user.username
+
     update.message.reply_text("latitude: {}, longitude: {}".format(latitude, longitude))
     response = requests.get('https://maps.googleapis.com/maps/api/elevation/json?locations={},{}&key={}'.format(latitude,longitude,GKEY))
     data = response.json()
-    
     altitude = (data["results"][0]["elevation"])
     update.message.reply_text("Hi, @{}! your current height is: {} meters".format(username,altitude))
     #Log user name, altitude and city here
@@ -68,13 +70,8 @@ def unknown(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="That command does not exist!")
 
 dispatcher.add_handler(CommandHandler('start', start))
-
 dispatcher.add_handler(MessageHandler(Filters.location, location))
-
 dispatcher.add_handler(MessageHandler(Filters.text, echo))
-
 dispatcher.add_handler(CommandHandler('help', help))
-
 dispatcher.add_handler(MessageHandler(Filters.command, unknown))
-
 updater.start_polling()
