@@ -41,7 +41,7 @@ def location(bot, update):
 def elevation(bot, update, latitude, longitude):
     username = update.message.from_user.username
 
-    update.message.reply_text("latitude: {}, longitude: {}".format(latitude, longitude))
+    update.message.reply_text("Fetching your location.")
     response = requests.get('https://maps.googleapis.com/maps/api/elevation/json?locations={},{}&key={}'.format(latitude,longitude,GKEY))
     data = response.json()
     altitude = (data["results"][0]["elevation"])
@@ -54,12 +54,20 @@ def elevation(bot, update, latitude, longitude):
         f.write(str(data)+'\n')
         currentTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         f.write(currentTime+'\n')
-        f.write('\n')
+        f.write('------')
 
     with open("altitudes.txt", "a+") as altitude_file:
         currentShortTime = datetime.now().strftime('%d-%m-%Y')
         altitude_file.write(str(altitude)+ ' @'+username+' Date:'+ currentShortTime)
     
+def highest(bot, update):
+    update.message.reply_text("These are the highest altitudes recorded: ")
+    #print
+
+def lowest(bot, update):
+    update.message.reply_text("These are the lowest recorded altitudes: ")
+    #print
+
 def echo(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="Start me with /start and send me your location.")
 
