@@ -28,7 +28,7 @@ except pymongo.errors.ConnectionFailure:
  		 
 db = conn['altitudes']
 collection = db.altitude
-  
+
 def start(bot, update):
     button = KeyboardButton("Send your location", request_location=True)
     keyboard = ReplyKeyboardMarkup([[button]],resize_keyboard=True,one_time_keyboard=True)
@@ -45,8 +45,11 @@ def elevation(bot, update, latitude, longitude):
     response = requests.get('https://maps.googleapis.com/maps/api/elevation/json?locations={},{}&key={}'.format(latitude,longitude,GKEY))
     data = response.json()
     altitude = (data["results"][0]["elevation"])
-    update.message.reply_text("Hi, @{}! your current height is: {} meters".format(username,altitude))
+    update.message.reply_text("Hi, @{}!{}Your current height is: {} meters".format(username,"\n",altitude))
     #Log user name, altitude and city here
+    collection.insert_one({
+        "username": "{}".format(username), "altitude": "{}".format(altitude)
+    })
 
     #Open and write status_code to logger.txt    
     with open("log.txt", "a+") as f:
@@ -54,19 +57,31 @@ def elevation(bot, update, latitude, longitude):
         f.write(str(data)+'\n')
         currentTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         f.write(currentTime+'\n')
-        f.write('------')
+        f.write('------ \n')
 
     with open("altitudes.txt", "a+") as altitude_file:
         currentShortTime = datetime.now().strftime('%d-%m-%Y')
-        altitude_file.write(str(altitude)+ ' @'+username+' Date:'+ currentShortTime)
-    
+        altitude_file.write(str("{},{},{}{}".format(altitude, username,currentShortTime, "\n")))
+
 def highest(bot, update):
     update.message.reply_text("These are the highest altitudes recorded: ")
-    #print
+    cursor = collection.find().sort([
+        ("altitude", pymongo.DESCENDING)
+    ])
+    for document in cursor:
+        usr = (document['username'])
+        alt = (document['altitude'])
+        update.message.reply_text("@{} with {} meters".format(usr ,alt))
 
 def lowest(bot, update):
     update.message.reply_text("These are the lowest recorded altitudes: ")
-    #print
+    cursor = collection.find().sort([
+        ("altitude", pymongo.ASCENDING)
+    ])
+    for document in cursor:
+        usr = (document['username'])
+        alt = (document['altitude'])
+        update.message.reply_text("@{} with {} meters".format(usr ,alt))
 
 def echo(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="Start me with /start and send me your location.")
@@ -80,6 +95,8 @@ def unknown(bot, update):
 dispatcher.add_handler(CommandHandler('start', start))
 dispatcher.add_handler(MessageHandler(Filters.location, location))
 dispatcher.add_handler(MessageHandler(Filters.text, echo))
+dispatcher.add_handler(CommandHandler('highest', highest))
+dispatcher.add_handler(CommandHandler('lowest', lowest))
 dispatcher.add_handler(CommandHandler('help', help))
 dispatcher.add_handler(MessageHandler(Filters.command, unknown))
 updater.start_polling()
