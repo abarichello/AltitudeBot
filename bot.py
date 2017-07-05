@@ -45,7 +45,8 @@ def elevation(bot, update, latitude, longitude):
     response = requests.get('https://maps.googleapis.com/maps/api/elevation/json?locations={},{}&key={}'.format(latitude,longitude,GKEY))
     data = response.json()
     altitude = (data["results"][0]["elevation"])
-    update.message.reply_text("Hi, @{}!{}Your current height is: {} meters".format(username,"\n",altitude))
+    alti = round(altitude, 3)
+    update.message.reply_text("Hi, @{}!{}Your current height is: {} meters".format(username,"\n",alti))
     #Log user name, altitude and city here
     collection.insert_one({
         "username": "{}".format(username), "altitude": "{}".format(altitude)
@@ -64,20 +65,22 @@ def elevation(bot, update, latitude, longitude):
         altitude_file.write(str("{},{},{}{}".format(altitude, username,currentShortTime, "\n")))
 
 def highest(bot, update):
-    update.message.reply_text("These are the highest altitudes recorded: ")
-    cursor = collection.find().sort([
-        ("altitude", pymongo.DESCENDING)
-    ])
+    update.message.reply_text("These are the 7 highest altitudes recorded: ")
+    cursor = collection.find({})
+    cursor.sort([('altitude', pymongo.DESCENDING)])
+    cursor.limit(7)
+    
     for document in cursor:
         usr = (document['username'])
         alt = (document['altitude'])
         update.message.reply_text("@{} with {} meters".format(usr ,alt))
 
 def lowest(bot, update):
-    update.message.reply_text("These are the lowest recorded altitudes: ")
-    cursor = collection.find().sort([
-        ("altitude", pymongo.ASCENDING)
-    ])
+    update.message.reply_text("These are the 7 lowest altitudes recorded: ")
+    cursor = collection.find({})
+    cursor.sort([("altitude", pymongo.ASCENDING)])
+    cursor.limit(7)
+
     for document in cursor:
         usr = (document['username'])
         alt = (document['altitude'])
