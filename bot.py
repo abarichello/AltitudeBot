@@ -46,7 +46,7 @@ def elevation(bot, update, latitude, longitude):
     data = response.json()
     altitude = (data["results"][0]["elevation"])
     rounded_alt = round(altitude, 3)
-    update.message.reply_text("Hi, @{}!{}Your current height is: {} meters".format(username,"\n",alti))
+    update.message.reply_text("Hi, @{}!{}Your current height is: {} meters".format(username,"\n",rounded_alt))
     #Log user name, altitude and city here
     collection.insert_one({
         "username": "{}".format(username), "altitude": "{}".format(rounded_alt)
@@ -65,6 +65,7 @@ def elevation(bot, update, latitude, longitude):
         altitude_file.write(str("{},{},{}{}".format(altitude, username,currentShortTime, "\n")))
 
 def highest(bot, update):
+    collection.find().sort('altitude', pymongo.DESCENDING)
     update.message.reply_text("Highest altitudes recorded: ")
     cursor = collection.find({})
     cursor.sort([('altitude', pymongo.DESCENDING)])
@@ -81,7 +82,9 @@ def highest(bot, update):
     final_string = '\n'.join(altered_string)
     update.message.reply_text(final_string)
     #join highest and lowest methods.
+
 def lowest(bot, update):
+    collection.find().sort('altitude', pymongo.ASCENDING)
     update.message.reply_text("Lowest altitudes recorded: ")
     cursor = collection.find({})
     cursor.sort([("altitude", pymongo.ASCENDING)])
@@ -98,6 +101,15 @@ def lowest(bot, update):
     final_string = '\n'.join(altered_string)
     update.message.reply_text(final_string)
 
+def test_db(bot, update):
+    import random
+    num = random.random() * 50
+    number = round(num, 3)
+    collection.insert({'username': 'fulano','altitude': number})
+
+def clear(bot, update):
+    collection.remove({})
+
 def echo(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="Start me with /start and send me your location.")
 
@@ -113,5 +125,7 @@ dispatcher.add_handler(MessageHandler(Filters.text, echo))
 dispatcher.add_handler(CommandHandler('highest', highest))
 dispatcher.add_handler(CommandHandler('lowest', lowest))
 dispatcher.add_handler(CommandHandler('help', help))
-dispatcher.add_handler(MessageHandler(Filters.command, unknown))
+#dispatcher.add_handler(MessageHandler(Filters.command, unknown))
+dispatcher.add_handler(CommandHandler('add', test_db))
+dispatcher.add_handler(CommandHandler('clear', clear))
 updater.start_polling()
