@@ -52,9 +52,9 @@ def elevation(bot, update, latitude, longitude):
     rounded_alt = round(altitude, 3)
     update.message.reply_text("Hi, @{}!{}Your current height is: {} meters".format(username,"\n",rounded_alt))
     #-Log user city here-
-    collection.insert_one({
-        "username": "{}".format(username), "altitude": "{}".format(rounded_alt)
-    })
+    doc ={"username": username,
+     "altitude": rounded_alt}
+    collection.insert_one(doc)
 
     #Logging status codes
     with open("log.txt", "a+") as f:
@@ -75,22 +75,20 @@ def ranking(bot, update):
     update.message.reply_text("Select the order", reply_markup=keyboard)
 
 def highest(bot, update):
-    cursor =  collection.find({"altitude": {"$gte": 0}}).sort('altitude', pymongo.DESCENDING)
-    cursor.limit(15)
+    cursor = collection.find().sort('altitude', pymongo.DESCENDING).limit(15)
     
     final_string = doc_cursor(cursor)    
     update.message.reply_text(final_string)
 
 def lowest(bot, update):
-    cursor =  collection.find({"altitude": { "$lte": 40 }}).sort('altitude', pymongo.ASCENDING)
-    cursor.limit(15)
+    cursor = collection.find().sort('altitude', pymongo.ASCENDING).limit(15)
     
     final_string = doc_cursor(cursor)
     update.message.reply_text(final_string)
 
 def my_altitudes(bot, update): #Retrieve only the current user's altitude
     username = update.message.from_user.username
-    cursor = collection.find({'username': username}).sort('username', pymongo.DESCENDING)
+    cursor = collection.find({'username': username}).sort(username, pymongo.DESCENDING)
     cursor.limit(20)
 
     final_string = doc_cursor(cursor)
@@ -100,8 +98,8 @@ def doc_cursor(cursor): #Method used to navigate the database.
     a = 1
     altered_string = []
     for document in cursor:
-        usr = (document['username'])
-        alt = (document['altitude'])
+        usr = (document["username"])
+        alt = (document["altitude"])
         string = "{}. @{} with {} meters".format(a,usr,alt,"\n")
         altered_string.append(string)
         a = a + 1
@@ -120,7 +118,7 @@ def db_test(bot, update): #test
         import random
         num = random.random() * 50
         number = round(num, 3)
-        collection.insert({'username': 'beltrano','altitude': -22})
+        collection.insert_one({'username': 'fulanilson','altitude': number})
     else:
         update.message.reply_text("Denied.")
 
