@@ -45,7 +45,7 @@ def location(bot, update):
 def elevation(bot, update, latitude, longitude):
     username = update.message.from_user.username
 
-    update.message.reply_text("Fetching your location.")
+    update.message.reply_text("Fetching your location")
     response = requests.get('https://maps.googleapis.com/maps/api/elevation/json?locations={},{}&key={}'.format(latitude,longitude,GKEY))
     data = response.json()
     altitude = (data["results"][0]["elevation"])
@@ -75,14 +75,14 @@ def ranking(bot, update):
     update.message.reply_text("Select the order", reply_markup=keyboard)
 
 def highest(bot, update):
-    cursor =  collection.find().sort('altitude', pymongo.DESCENDING)
+    cursor =  collection.find({"altitude": {"$gte": 0}}).sort('altitude', pymongo.DESCENDING)
     cursor.limit(15)
     
     final_string = doc_cursor(cursor)    
     update.message.reply_text(final_string)
 
 def lowest(bot, update):
-    cursor =  collection.find().sort('altitude', pymongo.ASCENDING)
+    cursor =  collection.find({"altitude": { "$lte": 40 }}).sort('altitude', pymongo.ASCENDING)
     cursor.limit(15)
     
     final_string = doc_cursor(cursor)
@@ -120,7 +120,7 @@ def db_test(bot, update): #test
         import random
         num = random.random() * 50
         number = round(num, 3)
-        collection.insert({'username': 'fulano','altitude': number})
+        collection.insert({'username': 'beltrano','altitude': -22})
     else:
         update.message.reply_text("Denied.")
 
