@@ -1,4 +1,4 @@
-from config import TOKEN, GKEY
+from config import TOKEN, GKEY, MONGODB_URI
 from filters import FilterHighest, FilterLowest
 from os import environ
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, InlineKeyboardButton,
@@ -34,9 +34,8 @@ Feedback? Questions? Contact me here: https://t.me/aBARICHELLO
 filter_lowest = FilterLowest()
 filter_highest = FilterHighest()
 
-uri = environ['MONGODB_URI']
 try:
-    conn = pymongo.MongoClient(uri)
+    conn = pymongo.MongoClient(MONGODB_URI)
     print('connected')
 except pymongo.errors.ConnectionFailure:
     print("could not connect")
