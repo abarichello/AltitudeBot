@@ -1,5 +1,5 @@
 from config import TOKEN, GKEY
-from filters import FilterHighest,FilterLowest
+from filters import FilterHighest, FilterLowest
 from os import environ
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, InlineKeyboardButton,
  InlineKeyboardMarkup)
@@ -19,15 +19,16 @@ logger = logging.getLogger(__name__)
 HELP_STRING = ("""
 Send me your location and i will rank it! Compete with your friends to see who gets the
 highest(or lowest) location on Earth!
+Repeated altitudes are not ranked!
 
 /start - Shows the location-sending button
 /ranking - Select the rank of highest/lowest user locations
 /myaltitudes - Displays your highest altitudes
 /help - Shows a really helpful text(this one)
 
-Feedback?Questions?Contact me here: https://t.me/aBARICHELLO
 Star me on GitHub!
 https://www.github.com/abarichello/altitudebot
+Feedback? Questions? Contact me here: https://t.me/aBARICHELLO
 """).strip('\n')
 
 filter_lowest = FilterLowest()
@@ -117,12 +118,17 @@ def my_altitudes(bot, update): #Retrieve only the current user's altitude
 def doc_cursor(cursor): #Method used to navigate the database.
     a = 1
     altered_string = []
+    added_infos = []
     for document in cursor:
         usr = (document["username"])
         alt = (document["altitude"])
         cty = (document["city"])
+        
         string = "{}. @{} with {} meters at {}".format(a,usr,alt,cty)
-        altered_string.append(string)
+        info = str(alt) + cty
+        if info not in added_infos:
+            added_infos.append(info)
+            altered_string.append(string)
         a = a + 1
     final_string = '\n'.join(altered_string)
     return final_string
@@ -139,7 +145,7 @@ def db_test(bot, update): #test
         import random
         num = random.random() * 50
         number = round(num, 3)
-        collection.insert_one({'username': 'fulanilson','altitude': number})
+        collection.insert_one({'username': 'fulanilson','altitude': number, 'city': 'whocaresland'})
     else:
         update.message.reply_text("Denied.")
 
@@ -155,7 +161,7 @@ def unknown(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="That command does not exist!")
 
 dispatcher.add_handler(CommandHandler('start', start))
-dispatcher.add_handler(MessageHandler(Filters.location, location))
+dispatcher.add_handler(MessageHandler(Filters.location & (~Filters.forwarded) & Filters.reply, location))
 dispatcher.add_handler(CommandHandler('ranking', ranking))
 dispatcher.add_handler(MessageHandler(filter_highest, highest))
 dispatcher.add_handler(MessageHandler(filter_lowest, lowest))
