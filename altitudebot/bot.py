@@ -17,7 +17,17 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 HELP_STRING = ("""
-helpfull text
+Send me your location and i will rank it! Compete with your friends to see who gets the
+highest(or lowest) location on Earth!
+
+/start - Shows the location-sending button
+/ranking - Select the rank of highest/lowest user locations
+/myaltitudes - Displays your highest altitudes
+/help - Shows a really helpful text(this one)
+
+Feedback?Questions?Contact me here: https://t.me/aBARICHELLO
+Star me on GitHub!
+https://www.github.com/abarichello/altitudebot
 """).strip('\n')
 
 filter_lowest = FilterLowest()
@@ -36,7 +46,9 @@ collection = db.altitude
 def start(bot, update):
     button = KeyboardButton("Send your location", request_location=True)
     keyboard = ReplyKeyboardMarkup([[button]],resize_keyboard=True,one_time_keyboard=True)
-    update.message.reply_text("Hi! Press the button to send me your location!", reply_markup=keyboard)
+    start_text = ("""Hi! Press the button to send me your location!
+Or see the current rank with /ranking""")
+    update.message.reply_text(start_text, reply_markup=keyboard)
 
 def location(bot, update):
     location = update.message.location
@@ -44,22 +56,30 @@ def location(bot, update):
 
 def elevation(bot, update, latitude, longitude):
     username = update.message.from_user.username
-
     update.message.reply_text("Fetching your location")
-    response = requests.get('https://maps.googleapis.com/maps/api/elevation/json?locations={},{}&key={}'.format(latitude,longitude,GKEY))
-    data = response.json()
-    altitude = (data["results"][0]["elevation"])
+    #Handle elevation
+    elv_response = requests.get(
+        'https://maps.googleapis.com/maps/api/elevation/json?locations={},{}&key={}'.format(latitude, longitude, GKEY))
+    elevation_data = elv_response.json()
+    altitude = (elevation_data["results"][0]["elevation"])
     rounded_alt = round(altitude, 3)
-    update.message.reply_text("Hi, @{}!{}Your current height is: {} meters".format(username,"\n",rounded_alt))
-    #-Log user city here-
+    #Handle city
+    geo_response = requests.get(
+        'https://maps.googleapis.com/maps/api/geocode/json?latlng={},{}&key={}'.format(latitude, longitude, GKEY))
+    geo_data = geo_response.json()
+    user_city = (geo_data["results"][0]["address_components"][4]["long_name"])
+
+    update.message.reply_text(
+        "Hi, @{}!{}Your current height is: {} meters at the city of {}".format(username, "\n", rounded_alt, user_city))
     doc ={"username": username,
-     "altitude": rounded_alt}
+    "altitude": rounded_alt,
+    "city": user_city}
     collection.insert_one(doc)
 
     #Logging status codes
     with open("log.txt", "a+") as f:
-        f.write(str(response.status_code)+'\n')
-        f.write(str(data)+'\n')
+        f.write(str(elv_response.status_code)+'\n')
+        f.write(str(elevation_data)+'\n')
         currentTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         f.write(currentTime+'\n')
         f.write('------ \n')
@@ -100,14 +120,15 @@ def doc_cursor(cursor): #Method used to navigate the database.
     for document in cursor:
         usr = (document["username"])
         alt = (document["altitude"])
-        string = "{}. @{} with {} meters".format(a,usr,alt,"\n")
+        cty = (document["city"])
+        string = "{}. @{} with {} meters at {}".format(a,usr,alt,cty)
         altered_string.append(string)
         a = a + 1
     final_string = '\n'.join(altered_string)
     return final_string
 
 def echo(bot, update):
-    bot.send_message(chat_id=update.message.chat_id, text="Start me with /start and send me your location.")
+    bot.send_message(chat_id=update.message.chat_id, text="/start me and press the button!")
 
 def help(bot, update):
 	bot.send_message(chat_id=update.message.chat_id, text=HELP_STRING)
