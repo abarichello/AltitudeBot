@@ -34,8 +34,9 @@ Feedback? Questions? Contact me here: https://t.me/aBARICHELLO
 filter_lowest = FilterLowest()
 filter_highest = FilterHighest()
 
+uri = environ['MONGODB_URI']
 try:
-    conn = pymongo.MongoClient()
+    conn = pymongo.MongoClient(uri)
     print('connected')
 except pymongo.errors.ConnectionFailure:
     print("could not connect")
