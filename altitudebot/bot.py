@@ -1,4 +1,4 @@
-from config import TOKEN, GKEY, MONGODB_URI, APPNAME, PORT
+from config import TOKEN, GKEY, MONGODB_URI, APPNAME, PORT, MAINTANER
 from filters import FilterHighest, FilterLowest
 from os import environ
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, InlineKeyboardButton,
@@ -52,6 +52,8 @@ def location(bot, update):
 
 def elevation(bot, update, latitude, longitude):
     username = update.message.from_user.username
+    if (username == None):
+        username = update.message.from_user.first_name
     update.message.reply_text("Fetching your location")
     
     #Handle elevation
@@ -93,13 +95,13 @@ def ranking(bot, update):
     update.message.reply_text("Select the order", reply_markup=keyboard)
 
 def highest(bot, update):
-    cursor = collection.find().sort('altitude', pymongo.DESCENDING).limit(15)
+    cursor = collection.find().sort('altitude', pymongo.DESCENDING).limit(12)
     
     final_string = doc_cursor(cursor)    
     update.message.reply_text(final_string)
 
 def lowest(bot, update):
-    cursor = collection.find().sort('altitude', pymongo.ASCENDING).limit(15)
+    cursor = collection.find().sort('altitude', pymongo.ASCENDING).limit(12)
     
     final_string = doc_cursor(cursor)
     update.message.reply_text(final_string)
@@ -136,19 +138,9 @@ def echo(bot, update):
 def help(bot, update):
 	bot.send_message(chat_id=update.message.chat_id, text=HELP_STRING)
 
-def db_test(bot, update): #test
-    user_id = update.message.from_user.id
-    if (user_id == 192097117):
-        import random
-        num = random.random() * 50
-        number = round(num, 3)
-        collection.insert_one({'username': 'fulanilson','altitude': number, 'city': 'whocaresland'})
-    else:
-        update.message.reply_text("Denied.")
-
 def clear(bot, update): #test
     user_id = update.message.from_user.id
-    if (user_id == 192097117):
+    if (user_id == MAINTANER):
         collection.remove({})
         update.message.reply_text("Cleared!")
     else:
@@ -165,7 +157,6 @@ dispatcher.add_handler(MessageHandler(filter_lowest, lowest))
 dispatcher.add_handler(MessageHandler(Filters.text, echo))
 dispatcher.add_handler(CommandHandler('myaltitudes', my_altitudes))
 dispatcher.add_handler(CommandHandler('help', help))
-dispatcher.add_handler(CommandHandler('add', db_test))
 dispatcher.add_handler(CommandHandler('clear', clear))
 dispatcher.add_handler(MessageHandler(Filters.command, unknown))
 updater.start_webhook(listen='0.0.0.0', port=int(PORT), url_path=TOKEN)
