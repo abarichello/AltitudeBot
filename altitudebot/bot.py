@@ -1,4 +1,4 @@
-from config import TOKEN, GKEY, MONGODB_URI
+from config import TOKEN, GKEY, MONGODB_URI, APPNAME, PORT
 from filters import FilterHighest, FilterLowest
 from os import environ
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, InlineKeyboardButton,
@@ -168,5 +168,6 @@ dispatcher.add_handler(CommandHandler('help', help))
 dispatcher.add_handler(CommandHandler('add', db_test))
 dispatcher.add_handler(CommandHandler('clear', clear))
 dispatcher.add_handler(MessageHandler(Filters.command, unknown))
-updater.start_polling()
+updater.start_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN)
+updater.bot.setWebhook("https://" + APPNAME + ".herokuapp.com/" + TOKEN)
 updater.idle()
