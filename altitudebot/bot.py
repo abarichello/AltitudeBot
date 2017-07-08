@@ -1,4 +1,4 @@
-from config import TOKEN, GKEY, MONGODB_URI, USR, PSW
+from config import TOKEN, GKEY, MONGODB_URI
 from filters import FilterHighest, FilterLowest
 from os import environ
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, InlineKeyboardButton,
@@ -35,9 +35,8 @@ filter_lowest = FilterLowest()
 filter_highest = FilterHighest()
 
 conn = pymongo.MongoClient(MONGODB_URI)
-conn.db.authenticate(USR, PSW)
-print('connected')
 db = conn.get_default_database
+print('connected')
 collection = db.altitudes
 
 def start(bot, update):
