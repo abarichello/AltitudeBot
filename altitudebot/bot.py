@@ -35,7 +35,7 @@ filter_lowest = FilterLowest()
 filter_highest = FilterHighest()
 
 conn = pymongo.MongoClient(MONGODB_URI)
-db = conn.get_default_database
+db = conn.get_default_database()
 print('connected')
 collection = db.altitudes
 
