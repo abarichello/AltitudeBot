@@ -13,7 +13,7 @@ updater = Updater(token=TOKEN)
 dispatcher = updater.dispatcher
 job = updater.job_queue
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 HELP_STRING = ("""
