@@ -1,4 +1,4 @@
-from config import TOKEN, GKEY, MONGODB_URI
+from config import TOKEN, GKEY, MONGODB_URI, USR, PSW
 from filters import FilterHighest, FilterLowest
 from os import environ
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, InlineKeyboardButton,
@@ -34,15 +34,11 @@ Feedback? Questions? Contact me here: https://t.me/aBARICHELLO
 filter_lowest = FilterLowest()
 filter_highest = FilterHighest()
 
-try:
-    conn = pymongo.MongoClient(MONGODB_URI)
-    print('connected')
-except pymongo.errors.ConnectionFailure:
-    print("could not connect")
-    pass
- 		 
-db = conn['altitudes']
-collection = db.altitude
+conn = pymongo.MongoClient(MONGODB_URI)
+conn.db.authenticate(USR, PSW)
+print('connected')
+db = conn.get_default_database
+collection = db.altitudes
 
 def start(bot, update):
     button = KeyboardButton("Send your location", request_location=True)
@@ -58,12 +54,14 @@ def location(bot, update):
 def elevation(bot, update, latitude, longitude):
     username = update.message.from_user.username
     update.message.reply_text("Fetching your location")
+    
     #Handle elevation
     elv_response = requests.get(
         'https://maps.googleapis.com/maps/api/elevation/json?locations={},{}&key={}'.format(latitude, longitude, GKEY))
     elevation_data = elv_response.json()
     altitude = (elevation_data["results"][0]["elevation"])
     rounded_alt = round(altitude, 3)
+    
     #Handle city
     geo_response = requests.get(
         'https://maps.googleapis.com/maps/api/geocode/json?latlng={},{}&key={}'.format(latitude, longitude, GKEY))
