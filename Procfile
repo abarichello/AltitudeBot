@@ -1,1 +1,1 @@
-web: gunicorn bot.py --log-file -
+web: python altitudebot/bot.py
