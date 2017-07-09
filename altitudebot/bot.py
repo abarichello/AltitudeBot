@@ -115,7 +115,21 @@ def my_altitudes(bot, update): #Retrieve only the current user's altitude
     cursor = collection.find({'username': username}).sort(username, pymongo.DESCENDING)
     cursor.limit(20)
 
-    final_string = doc_cursor(cursor)
+    a = 1
+    altered_string = []
+    added_infos = []
+    for document in cursor:
+        usr = (document["username"])
+        alt = (document["altitude"])
+        cty = (document["city"])
+        
+        string = "{}. @{} with {} meters at {}".format(a,usr,alt,cty)
+        info = str(alt) + cty
+        if info not in added_infos:
+            added_infos.append(info)
+            altered_string.append(string)
+        a = a + 1
+    final_string = '\n'.join(altered_string)
     update.message.reply_text(final_string)
     
 def doc_cursor(cursor): #Method used to navigate the database.
