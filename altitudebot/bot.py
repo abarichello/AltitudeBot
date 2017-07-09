@@ -1,4 +1,4 @@
-from config import TOKEN, GKEY, MONGODB_URI, APPNAME, PORT, MAINTANER, MINVALUE, MAXVALUE
+from config import TOKEN, GKEY, MONGODB_URI, APPNAME, PORT, MAINTANER, MINVALUE, MAXVALUE, DEBUG_CHANNEL
 from filters import FilterHighest, FilterLowest
 from os import environ
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, InlineKeyboardButton,
@@ -76,7 +76,7 @@ def elevation(bot, update, latitude, longitude):
         "altitude": rounded_alt,
         "city": user_city}
         collection.insert_one(doc)
-        bot.send_message(chat_id=MAINTANER ,text=doc)
+        bot.send_message(chat_id=DEBUG_CHANNEL ,text="{}{}{}".format(username,rounded_alt,user_city,user_city))
 
         #Logging status codes
         with open("log.txt", "a+") as f:
