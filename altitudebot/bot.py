@@ -1,4 +1,4 @@
-from config import TOKEN, GKEY, MONGODB_URI, APPNAME, PORT, MAINTANER
+from config import TOKEN, GKEY, MONGODB_URI, APPNAME, PORT, MAINTANER, MINVALUE, MAXVALUE
 from filters import FilterHighest, FilterLowest
 from os import environ
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, InlineKeyboardButton,
@@ -69,24 +69,28 @@ def elevation(bot, update, latitude, longitude):
     geo_data = geo_response.json()
     user_city = (geo_data["results"][0]["address_components"][4]["long_name"])
 
-    update.message.reply_text(
-        "Hi, @{}!{}Your current height is: {} meters at the city of {}".format(username, "\n", rounded_alt, user_city))
-    doc ={"username": username,
-    "altitude": rounded_alt,
-    "city": user_city}
-    collection.insert_one(doc)
+    if (check_altitude(rounded_alt)):
+        update.message.reply_text(
+            "Hi, @{}!{}Your current height is: {} meters at the city of {}".format(username, "\n", rounded_alt, user_city))
+        doc ={"username": username,
+        "altitude": rounded_alt,
+        "city": user_city}
+        collection.insert_one(doc)
+        bot.send_message(chat_id=MAINTANER ,text=doc)
 
-    #Logging status codes
-    with open("log.txt", "a+") as f:
-        f.write(str(elv_response.status_code)+'\n')
-        f.write(str(elevation_data)+'\n')
-        currentTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        f.write(currentTime+'\n')
-        f.write('------ \n')
+        #Logging status codes
+        with open("log.txt", "a+") as f:
+            f.write(str(elv_response.status_code)+'\n')
+            f.write(str(elevation_data)+'\n')
+            currentTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            f.write(currentTime+'\n')
+            f.write('------ \n')
 
-    with open("altitudes.txt", "a+") as altitude_file:
-        currentShortTime = datetime.now().strftime('%d-%m-%Y')
-        altitude_file.write(str("{},{},{}{}".format(altitude, username,currentShortTime, "\n")))
+        with open("altitudes.txt", "a+") as altitude_file:
+            currentShortTime = datetime.now().strftime('%d-%m-%Y')
+            altitude_file.write(str("{},{},{}{}".format(altitude, username,currentShortTime, "\n")))
+    else:
+        update.message.reply_text("That location seems really odd...")
 
 def ranking(bot, update):
     btn1 = KeyboardButton(text="Lowest")
@@ -117,20 +121,24 @@ def my_altitudes(bot, update): #Retrieve only the current user's altitude
 def doc_cursor(cursor): #Method used to navigate the database.
     a = 1
     altered_string = []
-    added_infos = []
+    added_users = []
     for document in cursor:
         usr = (document["username"])
         alt = (document["altitude"])
         cty = (document["city"])
         
         string = "{}. @{} with {} meters at {}".format(a,usr,alt,cty)
-        info = str(alt) + cty
-        if info not in added_infos:
-            added_infos.append(info)
+        if usr not in added_users:
+            added_users.append(usr)
             altered_string.append(string)
-        a = a + 1
+            a = a + 1
     final_string = '\n'.join(altered_string)
     return final_string
+
+def check_altitude(altitude): #Returns false for an unusual location.
+    if (altitude > int(MAXVALUE) or altitude < int(MINVALUE)):
+        return False
+    return True
 
 def echo(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="/start me and press the button!")

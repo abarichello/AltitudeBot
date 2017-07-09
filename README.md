@@ -7,9 +7,12 @@ A Telegram bot. Compete with your friends to see who gets the highest(or lowest)
 ## Introduction
 Acess https://t.me/TheAltitudeBot send the bot a /start, then follow the commands given by the bot.  
 __You can use these other commands too:__  
-/highest  
-/lowest  
+/ranking  
+/myaltitudes  
 /help  
 
+## Special thanks
+Thanks for @cauebs and @caiopo for helping me in debugging.
+
 ## Contact me
-Need help? Contact t.me/aBARICHELLO
+Need help? Contact https://t.me/aBARICHELLO
