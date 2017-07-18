@@ -1,9 +1,11 @@
-from config import TOKEN, GKEY, MONGODB_URI, APPNAME, PORT, MAINTANER, MINVALUE, MAXVALUE, DEBUG_CHANNEL
+from config import TOKEN, GKEY, MONGODB_URI, APPNAME, PORT, MAINTANER
+from config import MINVALUE, MAXVALUE, DEBUG_CHANNEL, CURSOR_SIZE
 from filters import FilterHighest, FilterLowest
 from os import environ
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, InlineKeyboardButton,
  InlineKeyboardMarkup)
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Job, BaseFilter
+from telegram import InlineQueryResultArticle as InlineResult
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Job, BaseFilter, InlineQueryHandler
 from googlemaps import convert, elevation
 from pprint import pprint
 from datetime import datetime
@@ -36,15 +38,14 @@ filter_highest = FilterHighest()
 
 conn = pymongo.MongoClient(MONGODB_URI)
 db = conn.get_default_database()
-print('connected')
 collection = db.altitudes
 
 def start(bot, update):
     button = KeyboardButton("Send your location", request_location=True)
     keyboard = ReplyKeyboardMarkup([[button]],resize_keyboard=True,one_time_keyboard=True)
-    start_text = ("""Hi! Press the button to send me your location!
+    START_STRING = ("""Hi! Press the button to send me your location!
 Or see the current rank with /ranking""")
-    update.message.reply_text(start_text, reply_markup=keyboard)
+    update.message.reply_text(START_STRING, reply_markup=keyboard)
 
 def location(bot, update):
     location = update.message.location
@@ -54,6 +55,7 @@ def elevation(bot, update, latitude, longitude):
     username = update.message.from_user.username
     if (username == None):
         username = update.message.from_user.first_name
+    
     update.message.reply_text("Fetching your location")
     
     #Handle elevation
@@ -69,7 +71,7 @@ def elevation(bot, update, latitude, longitude):
     geo_data = geo_response.json()
     user_city = (geo_data["results"][0]["address_components"][4]["long_name"])
 
-    if (check_altitude(rounded_alt)):
+    if (check_altitude(rounded_alt) and check_repeat(username, rounded_alt)):
         update.message.reply_text(
             "Hi, @{}!{}Your current height is: {} meters at the city of {}".format(username, "\n", rounded_alt, user_city))
         doc ={"username": username,
@@ -99,13 +101,13 @@ def ranking(bot, update):
     update.message.reply_text("Select the order", reply_markup=keyboard)
 
 def highest(bot, update):
-    cursor = collection.find().sort('altitude', pymongo.DESCENDING).limit(12)
+    cursor = collection.find().sort('altitude', pymongo.DESCENDING).limit(int(CURSOR_SIZE))
     
     final_string = doc_cursor(cursor)    
     update.message.reply_text(final_string)
 
 def lowest(bot, update):
-    cursor = collection.find().sort('altitude', pymongo.ASCENDING).limit(12)
+    cursor = collection.find().sort('altitude', pymongo.ASCENDING).limit(int(CURSOR_SIZE))
     
     final_string = doc_cursor(cursor)
     update.message.reply_text(final_string)
@@ -117,33 +119,28 @@ def my_altitudes(bot, update): #Retrieve only the current user's altitude
 
     a = 1
     altered_string = []
-    added_infos = []
     for document in cursor:
-        usr = (document["username"])
-        alt = (document["altitude"])
-        cty = (document["city"])
-        
-        string = "{}. @{} with {} meters at {}".format(a,usr,alt,cty)
-        info = str(alt) + cty
-        if info not in added_infos:
-            added_infos.append(info)
+        if added_infos.__len__ < 13:
+            usr = (document["username"])
+            alt = (document["altitude"])
+            cty = (document["city"])
+            
+            string = "{}. @{} with {} meters at {}".format(a,usr,alt,cty)
             altered_string.append(string)
-        a = a + 1
+            a = a + 1
     final_string = '\n'.join(altered_string)
     update.message.reply_text(final_string)
     
 def doc_cursor(cursor): #Method used to navigate the database.
     a = 1
     altered_string = []
-    added_users = []
     for document in cursor:
-        usr = (document["username"])
-        alt = (document["altitude"])
-        cty = (document["city"])
-        
-        string = "{}. @{} with {} meters at {}".format(a,usr,alt,cty)
-        if usr not in added_users:
-            added_users.append(usr)
+        if len(altered_string) <= 12:
+            usr = (document["username"])
+            alt = (document["altitude"])
+            cty = (document["city"])
+            
+            string = "{}. @{} with {} meters at {}".format(a,usr,alt,cty)
             altered_string.append(string)
             a = a + 1
     final_string = '\n'.join(altered_string)
@@ -152,21 +149,17 @@ def doc_cursor(cursor): #Method used to navigate the database.
 def check_altitude(altitude): #Returns false for an unusual location.
     if (altitude > int(MAXVALUE) or altitude < int(MINVALUE)):
         return False
-    return True
+    else:
+        return True
 
-def echo(bot, update):
-    bot.send_message(chat_id=update.message.chat_id, text="/start me and press the button!")
+def check_repeat(username, altitude):
+    if collection.find_one({ 'username': username, 'altitude': altitude}) != None:
+        return True
+    else:
+        return False
 
 def help(bot, update):
 	bot.send_message(chat_id=update.message.chat_id, text=HELP_STRING)
-
-def clear(bot, update): #test
-    user_id = update.message.from_user.id
-    if (user_id == MAINTANER):
-        collection.remove({})
-        update.message.reply_text("Cleared!")
-    else:
-        update.message.reply_text("Denied")
 
 def unknown(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="That command does not exist!")
@@ -176,10 +169,8 @@ dispatcher.add_handler(MessageHandler(Filters.location & (~Filters.forwarded) & 
 dispatcher.add_handler(CommandHandler('ranking', ranking))
 dispatcher.add_handler(MessageHandler(filter_highest, highest))
 dispatcher.add_handler(MessageHandler(filter_lowest, lowest))
-dispatcher.add_handler(MessageHandler(Filters.text, echo))
 dispatcher.add_handler(CommandHandler('myaltitudes', my_altitudes))
 dispatcher.add_handler(CommandHandler('help', help))
-dispatcher.add_handler(CommandHandler('clear', clear))
 dispatcher.add_handler(MessageHandler(Filters.command, unknown))
 updater.start_webhook(listen='0.0.0.0', port=int(PORT), url_path=TOKEN)
 updater.bot.setWebhook("https://" + APPNAME + ".herokuapp.com/" + TOKEN)
