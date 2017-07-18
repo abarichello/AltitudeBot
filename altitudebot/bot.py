@@ -134,6 +134,7 @@ def my_altitudes(bot, update): #Retrieve only the current user's altitude
 def doc_cursor(cursor): #Method used to navigate the database.
     a = 1
     altered_string = []
+    added_users = []
     for document in cursor:
         if len(altered_string) <= 12:
             usr = (document["username"])
@@ -141,8 +142,10 @@ def doc_cursor(cursor): #Method used to navigate the database.
             cty = (document["city"])
             
             string = "{}. @{} with {} meters at {}".format(a,usr,alt,cty)
-            altered_string.append(string)
-            a = a + 1
+            if usr not in added_users:
+                added_users.append(usr)
+                altered_string.append(string)
+                a = a + 1
     final_string = '\n'.join(altered_string)
     return final_string
 
