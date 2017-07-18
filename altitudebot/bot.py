@@ -154,9 +154,9 @@ def check_altitude(altitude): #Returns false for an unusual location.
 
 def check_repeat(username, altitude):
     if collection.find_one({ 'username': username, 'altitude': altitude}) != None:
-        return True
-    else:
         return False
+    else:
+        return True
 
 def help(bot, update):
 	bot.send_message(chat_id=update.message.chat_id, text=HELP_STRING)
