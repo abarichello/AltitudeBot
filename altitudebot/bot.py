@@ -91,8 +91,11 @@ def elevation(bot, update, latitude, longitude):
         with open("altitudes.txt", "a+") as altitude_file:
             currentShortTime = datetime.now().strftime('%d-%m-%Y')
             altitude_file.write(str("{},{},{}{}".format(altitude, username,currentShortTime, "\n")))
+    elif not check_repeat(username, rounded_alt):
+        update.message.reply_text("That location was already added! Check it with /myaltitudes")
     else:
-        update.message.reply_text("That location seems really odd...")
+        update.message.reply_text("That location seems really improbable...")
+        
 
 def ranking(bot, update):
     btn1 = KeyboardButton(text="Lowest")
@@ -120,7 +123,7 @@ def my_altitudes(bot, update): #Retrieve only the current user's altitude
     a = 1
     altered_string = []
     for document in cursor:
-        if added_infos.__len__ < 13:
+        if len(altered_string) < 13:
             usr = (document["username"])
             alt = (document["altitude"])
             cty = (document["city"])
