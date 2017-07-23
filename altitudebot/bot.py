@@ -66,19 +66,23 @@ def elevation(bot, update, latitude, longitude):
     rounded_alt = round(altitude, 3)
     
     #Handle city
+    result_type = 'country|administrative_area_level_1|administrative_area_level_2'
     geo_response = requests.get(
-        'https://maps.googleapis.com/maps/api/geocode/json?latlng={},{}&key={}'.format(latitude, longitude, GKEY))
+        'https://maps.googleapis.com/maps/api/geocode/json?latlng={},{}&key={}&result_type={}'.format(
+            latitude, longitude, GKEY, result_type))
     geo_data = geo_response.json()
-    user_city = (geo_data["results"][0]["address_components"][4]["long_name"])
+    user_location = (geo_data['results'][0]['formatted_address'])
 
     if (check_altitude(rounded_alt) and check_repeat(username, rounded_alt)):
         update.message.reply_text(
-            "Hi, @{}!{}Your current height is: {} meters at the city of {}".format(username, "\n", rounded_alt, user_city))
+            "Hi, @{}!{}Your current height is: {} meters at the city of {}".format(
+                username, "\n", rounded_alt, user_location))
         doc ={"username": username,
         "altitude": rounded_alt,
-        "city": user_city}
+        "city": user_location}
         collection.insert_one(doc)
-        bot.send_message(chat_id=DEBUG_CHANNEL ,text="{}{}{}".format(username,rounded_alt,user_city,user_city))
+        bot.send_message(chat_id=DEBUG_CHANNEL ,text="{}|{}|{}".format(
+            username, rounded_alt, user_location))
 
         #Logging status codes
         with open("log.txt", "a+") as f:
