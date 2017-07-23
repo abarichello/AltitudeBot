@@ -53,8 +53,12 @@ def location(bot, update):
 
 def elevation(bot, update, latitude, longitude):
     username = update.message.from_user.username
-    if (username == None):
-        username = update.message.from_user.first_name
+    if username == None:
+        fName = update.message.from_user.first_name
+        lName = update.message.from_user.last_name
+        if lName == None:
+            lName = ' '
+        username = f'{fName} {lName}'
     
     update.message.reply_text("Fetching your location")
     
@@ -140,6 +144,7 @@ def my_altitudes(bot, update): #Retrieve only the current user's altitude
     
 def doc_cursor(cursor): #Method used to navigate the database.
     a = 1
+    symbol = "@"
     altered_string = []
     added_users = []
     for document in cursor:
@@ -148,7 +153,10 @@ def doc_cursor(cursor): #Method used to navigate the database.
             alt = (document["altitude"])
             cty = (document["city"])
             
-            string = "{}. @{} with {} meters at {}".format(a,usr,alt,cty)
+            if ' ' in usr:
+                symbol = '-'
+
+            string = f"{a}. {symbol}{usr} with {alt} meters at {cty}"
             if usr not in added_users:
                 added_users.append(usr)
                 altered_string.append(string)
