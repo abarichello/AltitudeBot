@@ -8,7 +8,6 @@ from telegram import InlineQueryResultArticle as InlineResult
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Job, BaseFilter, InlineQueryHandler
 from googlemaps import convert, elevation
 from pprint import pprint
-from datetime import datetime
 import logging, requests, json, sys, pymongo
 
 updater = Updater(token=TOKEN)
@@ -63,9 +62,11 @@ def elevation(bot, update, latitude, longitude):
     
     update.message.reply_text("Fetching your location...")
     
+    #TODO check for eligibility.
+
     #Handle elevation
     elv_response = requests.get(
-        'https://maps.googleapis.com/maps/api/elevation/json?locations={},{}&key={}'.format(latitude, longitude, GKEY))
+        f'https://maps.googleapis.com/maps/api/elevation/json?locations={latitude},{longitude}&key={GKEY}')
     elevation_data = elv_response.json()
     altitude = (elevation_data["results"][0]["elevation"])
     rounded_alt = round(altitude, 3)
@@ -78,36 +79,43 @@ def elevation(bot, update, latitude, longitude):
     geo_data = geo_response.json()
     user_location = (geo_data['results'][0]['formatted_address'])
 
-    if (check_altitude(rounded_alt) and check_repeat(username, rounded_alt)):
-        update.message.reply_text(
+    #Respond with altitude
+    update.message.reply_text(
             "Hi, @{}!{}Your current height is: {} meters at the city of {}".format(
                 username, "\n", rounded_alt, user_location))
-        
+    
+    #Check and add to database
+    if (check_altitude(rounded_alt) and check_repeat(username, rounded_alt)):
+        add_to_database(bot, username, userId, rounded_alt, user_location)
+        update.message.reply_text("Location added to database!")
+    elif not check_repeat(username, rounded_alt):
+        update.message.reply_text("That location was already added! Check it with /myaltitudes")
+    else:
+        update.message.reply_text("There's something wrong with that location! Contact @aBARICHELLO")
+
+def check_altitude(altitude): #Returns false for an unusual location.
+    if (altitude > int(MAXVALUE) or altitude < int(MINVALUE)):
+        return False
+    else:
+        return True
+
+def check_repeat(username, altitude):
+    if collection.find_one({ 'username': username, 'altitude': altitude}) != None:
+        return False
+    else:
+        return True
+
+def add_to_database(bot, username, userId, rounded_alt, user_location):
         doc ={"username": username,
         "userid": userId,
         "altitude": rounded_alt,
         "city": user_location}
-
         collection.insert_one(doc)
+
         bot.send_message(chat_id=DEBUG_CHANNEL ,text="{}|{}|{}".format(
             username, rounded_alt, user_location))
 
-        #Logging status codes
-        with open("log.txt", "a+") as f:
-            f.write(str(elv_response.status_code)+'\n')
-            f.write(str(elevation_data)+'\n')
-            currentTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            f.write(currentTime+'\n')
-            f.write('------ \n')
-
-        with open("altitudes.txt", "a+") as altitude_file:
-            currentShortTime = datetime.now().strftime('%d-%m-%Y')
-            altitude_file.write(str("{},{},{}{}".format(altitude, username,currentShortTime, "\n")))
-    elif not check_repeat(username, rounded_alt):
-        update.message.reply_text("That location was already added! Check it with /myaltitudes")
-    else:
-        update.message.reply_text("That location seems really improbable...")
-        
+#def check_eligibility():
 
 def ranking(bot, update):
     btn1 = KeyboardButton(text="Lowest")
@@ -167,19 +175,7 @@ def doc_cursor(cursor): #Method used to navigate the database.
                 a = a + 1
     final_string = '\n'.join(altered_string)
     return final_string
-
-def check_altitude(altitude): #Returns false for an unusual location.
-    if (altitude > int(MAXVALUE) or altitude < int(MINVALUE)):
-        return False
-    else:
-        return True
-
-def check_repeat(username, altitude):
-    if collection.find_one({ 'username': username, 'altitude': altitude}) != None:
-        return False
-    else:
-        return True
-
+    
 def help(bot, update):
 	bot.send_message(chat_id=update.message.chat_id, text=HELP_STRING)
 
