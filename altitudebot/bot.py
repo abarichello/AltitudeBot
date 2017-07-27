@@ -52,6 +52,7 @@ def location(bot, update):
     elevation(bot, update, location.latitude, location.longitude)
 
 def elevation(bot, update, latitude, longitude):
+    userId = update.message.chat.id
     username = update.message.from_user.username
     if username == None:
         fName = update.message.from_user.first_name
@@ -60,7 +61,7 @@ def elevation(bot, update, latitude, longitude):
             lName = ' '
         username = f'{fName} {lName}'
     
-    update.message.reply_text("Fetching your location")
+    update.message.reply_text("Fetching your location...")
     
     #Handle elevation
     elv_response = requests.get(
@@ -81,9 +82,12 @@ def elevation(bot, update, latitude, longitude):
         update.message.reply_text(
             "Hi, @{}!{}Your current height is: {} meters at the city of {}".format(
                 username, "\n", rounded_alt, user_location))
+        
         doc ={"username": username,
+        "userid": userId,
         "altitude": rounded_alt,
         "city": user_location}
+
         collection.insert_one(doc)
         bot.send_message(chat_id=DEBUG_CHANNEL ,text="{}|{}|{}".format(
             username, rounded_alt, user_location))
@@ -190,6 +194,7 @@ dispatcher.add_handler(MessageHandler(filter_lowest, lowest))
 dispatcher.add_handler(CommandHandler('myaltitudes', my_altitudes))
 dispatcher.add_handler(CommandHandler('help', help))
 dispatcher.add_handler(MessageHandler(Filters.command, unknown))
+
 updater.start_webhook(listen='0.0.0.0', port=int(PORT), url_path=TOKEN)
 updater.bot.setWebhook("https://" + APPNAME + ".herokuapp.com/" + TOKEN)
 updater.idle()
