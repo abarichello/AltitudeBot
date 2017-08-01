@@ -153,12 +153,11 @@ def my_altitudes(bot, update): #Retrieve only the current user's altitude
     a = 1
     altered_string = []
     for document in cursor:
-        if len(altered_string) < 13:
-            usr = (document["username"])
+        if len(altered_string) < 20:
             alt = (document["altitude"])
             cty = (document["city"])
             
-            string = "{}. @{} with {} meters at {}".format(a,usr,alt,cty)
+            string = f"{a} - {alt} meters at {cty}"
             altered_string.append(string)
             a += 1
     final_string = '\n'.join(altered_string)
