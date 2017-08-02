@@ -75,7 +75,13 @@ def elevation(bot, update, latitude, longitude):
             'https://maps.googleapis.com/maps/api/geocode/json?latlng={},{}&key={}&result_type={}'.format(
                 latitude, longitude, GKEY, result_type))
         geo_data = geo_response.json()
-        user_location = (geo_data['results'][0]['formatted_address'])
+        try:
+            user_location = (geo_data['results'][0]['formatted_address'])
+        except IndexError as e:
+            print(e)
+            print(geo_data)
+            update.message.reply_text("Something went wrong with your location.")
+            update.message.reply_text("Try another location or forward it to @aBARICHELLO")
 
         #Respond with altitude
         update.message.reply_text(
