@@ -1,5 +1,5 @@
 from config import *
-from filters import FilterHighest, FilterLowest
+
 from os import environ
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, InlineKeyboardButton,
  InlineKeyboardMarkup)
@@ -7,6 +7,7 @@ from telegram import InlineQueryResultArticle as InlineResult
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Job, BaseFilter, InlineQueryHandler
 from googlemaps import convert, elevation
 from pprint import pprint
+
 import logging, requests, json, sys, pymongo
 
 updater = Updater(token=TOKEN)
@@ -30,9 +31,6 @@ Star me on GitHub!
 https://www.github.com/abarichello/altitudebot
 Feedback? Questions? Contact me here: https://t.me/aBARICHELLO
 """).strip('\n')
-
-filter_lowest = FilterLowest()
-filter_highest = FilterHighest()
 
 conn = pymongo.MongoClient(MONGODB_URI)
 db = conn.get_default_database()
@@ -133,12 +131,6 @@ def check_eligibility(userId): #Checks if the user has more entries than allowed
     else:
         return True
 
-def ranking(bot, update):
-    btn1 = KeyboardButton(text="Lowest")
-    btn2 = KeyboardButton(text="Highest")
-    keyboard = ReplyKeyboardMarkup([[btn1, btn2]],resize_keyboard=True)
-    update.message.reply_text("Select the order", reply_markup=keyboard)
-
 def highest(bot, update):
     cursor = collection.find().sort('altitude', pymongo.DESCENDING).limit(int(CURSOR_SIZE))
     
@@ -199,12 +191,10 @@ def unknown(bot, update):
 
 dispatcher.add_handler(CommandHandler('start', start))
 dispatcher.add_handler(MessageHandler(Filters.location & (~Filters.forwarded) & Filters.reply, location))
-dispatcher.add_handler(CommandHandler('ranking', ranking))
-dispatcher.add_handler(MessageHandler(filter_highest, highest))
-dispatcher.add_handler(MessageHandler(filter_lowest, lowest))
+dispatcher.add_handler(CommandHandler('lowest', lowest))
+dispatcher.add_handler(CommandHandler('highest', highest))
 dispatcher.add_handler(CommandHandler('myaltitudes', my_altitudes))
 dispatcher.add_handler(CommandHandler('help', help))
-dispatcher.add_handler(MessageHandler(Filters.command, unknown))
 
 updater.start_webhook(listen='0.0.0.0', port=int(PORT), url_path=TOKEN)
 updater.bot.setWebhook("https://" + APPNAME + ".herokuapp.com/" + TOKEN)
