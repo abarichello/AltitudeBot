@@ -50,10 +50,10 @@ def location(bot, update):
 def elevation(bot, update, latitude, longitude):
     userId = update.message.chat.id
     username = update.message.from_user.username
-    if username == None:
+    if not username:
         fName = update.message.from_user.first_name
         lName = update.message.from_user.last_name
-        if lName == None:
+        if not lName:
             lName = ' '
         username = f'{fName} {lName}'
     
@@ -98,16 +98,10 @@ def elevation(bot, update, latitude, longitude):
         update.message.reply_text("You've reached the limit of entries. Contact @aBARICHELLO for deletions.")
 
 def check_altitude(altitude): #Returns false for an unusual location.
-    if (altitude > int(MAXVALUE) or altitude < int(MINVALUE)):
-        return False
-    else:
-        return True
+    return int(MINVALUE) <= altitude <= int(MAXVALUE)
 
 def check_repeat(username, altitude):
-    if collection.find_one({ 'username': username, 'altitude': altitude}) != None:
-        return False
-    else:
-        return True
+    return bool(collection.find_one({ 'username': username, 'altitude': altitude}))
 
 def add_to_database(bot, username, userId, rounded_alt, user_location):
         doc ={"username": username,
@@ -126,10 +120,7 @@ def check_eligibility(userId): #Checks if the user has more entries than allowed
     for document in cursor:
         userCount += 1
     
-    if userCount > int(MAXENTRIES):
-        return False
-    else:
-        return True
+    return userCount <= int(MAXENTRIES)
 
 def highest(bot, update):
     cursor = collection.find().sort('altitude', pymongo.DESCENDING).limit(int(CURSOR_SIZE))
