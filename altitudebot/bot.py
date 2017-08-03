@@ -7,7 +7,6 @@ from telegram import InlineQueryResultArticle as InlineResult
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Job, BaseFilter, InlineQueryHandler
 from googlemaps import convert, elevation
 from pprint import pprint
-
 import logging, requests, json, sys, pymongo
 
 updater = Updater(token=TOKEN)
@@ -40,7 +39,7 @@ def start(bot, update):
     button = KeyboardButton("Send your location", request_location=True)
     keyboard = ReplyKeyboardMarkup([[button]],resize_keyboard=True,one_time_keyboard=True)
     START_STRING = ("""Hi! Press the button to send me your location!
-Or see the current rank with /ranking""")
+Or see the current rank with /lowest and /highest""")
     update.message.reply_text(START_STRING, reply_markup=keyboard)
 
 def location(bot, update):
@@ -87,11 +86,9 @@ def elevation(bot, update, latitude, longitude):
                     username, "\n", rounded_alt, user_location))
         
         #Check and add to database
-        if (check_altitude(rounded_alt) and check_repeat(username, rounded_alt)):
+        if (check_altitude(rounded_alt)):
             add_to_database(bot, username, userId, rounded_alt, user_location)
             update.message.reply_text("Location added to database.")
-        elif not check_repeat(username, rounded_alt):
-            update.message.reply_text("That location was already added! Check it with /myaltitudes")
         else:
             update.message.reply_text("There's something wrong with that location! Contact @aBARICHELLO")    
     else:
@@ -99,9 +96,6 @@ def elevation(bot, update, latitude, longitude):
 
 def check_altitude(altitude): #Returns false for an unusual location.
     return int(MINVALUE) <= altitude <= int(MAXVALUE)
-
-def check_repeat(username, altitude):
-    return bool(collection.find_one({ 'username': username, 'altitude': altitude}))
 
 def add_to_database(bot, username, userId, rounded_alt, user_location):
         doc ={"username": username,
