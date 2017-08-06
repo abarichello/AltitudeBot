@@ -61,7 +61,7 @@ def elevation(bot, update, latitude, longitude):
     if check_eligibility(userId):
         #Handle elevation
         elv_response = requests.get(
-            f'https://maps.googleapis.com/maps/api/elevation/json?locations={latitude},{longitude}&key={GKEY}')
+            f'https://maps.googleapis.com/maps/api/elevation/json?locations={latitude},{longitude}&key={config.GKEY}')
         elevation_data = elv_response.json()
         altitude = (elevation_data["results"][0]["elevation"])
         rounded_alt = round(altitude, 3)
@@ -69,11 +69,11 @@ def elevation(bot, update, latitude, longitude):
         #Handle city
         result_type = 'country|administrative_area_level_1|administrative_area_level_2'
         geo_response = requests.get(
-            'https://maps.googleapis.com/maps/api/geocode/json?latlng={},{}&key={}&result_type={}'.format(
-                latitude, longitude, GKEY, result_type))
+            'https://maps.googleapis.com/maps/api/geocode/json?latlng={},{}&key={}'.format(
+                latitude, longitude, config.GKEY))
         geo_data = geo_response.json()
         try:
-            user_location = (geo_data['results'][0]['formatted_address'])
+            user_location = (geo_data['results'][1]['formatted_address'])
         except IndexError as e:
             print(e)
             print(geo_data)
@@ -82,7 +82,7 @@ def elevation(bot, update, latitude, longitude):
 
         #Respond with altitude
         update.message.reply_text(
-                "Hi, @{}!{}Your current height is: {} meters at the city of {}".format(
+                "Hi, @{}!{}Your current height is: {} meters at the location of {}".format(
                     username, "\n", rounded_alt, user_location))
         
         #Check and add to database
