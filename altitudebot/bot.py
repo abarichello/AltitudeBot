@@ -1,4 +1,4 @@
-from config import *
+import config
 
 from os import environ
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, InlineKeyboardButton,
@@ -9,7 +9,7 @@ from googlemaps import convert, elevation
 from pprint import pprint
 import logging, requests, json, sys, pymongo
 
-updater = Updater(token=TOKEN)
+updater = Updater(token=config.TOKEN)
 dispatcher = updater.dispatcher
 job = updater.job_queue
 
@@ -31,7 +31,7 @@ https://www.github.com/abarichello/altitudebot
 Feedback? Questions? Contact me here: https://t.me/aBARICHELLO
 """).strip('\n')
 
-conn = pymongo.MongoClient(MONGODB_URI)
+conn = pymongo.MongoClient(config.MONGODB_URI)
 db = conn.get_default_database()
 collection = db.altitudes
 
@@ -95,7 +95,7 @@ def elevation(bot, update, latitude, longitude):
         update.message.reply_text("You've reached the limit of entries. Contact @aBARICHELLO for deletions.")
 
 def check_altitude(altitude): #Returns false for an unusual location.
-    return int(MINVALUE) <= altitude <= int(MAXVALUE)
+    return config.MINVALUE <= altitude <= config.MAXVALUE
 
 def add_to_database(bot, username, userId, rounded_alt, user_location):
         doc ={"username": username,
@@ -104,7 +104,7 @@ def add_to_database(bot, username, userId, rounded_alt, user_location):
         "city": user_location}
         collection.insert_one(doc)
 
-        bot.send_message(chat_id=DEBUG_CHANNEL ,text="{}|{}|{}".format(
+        bot.send_message(chat_id=config.DEBUG_CHANNEL ,text="{}|{}|{}".format(
             username, rounded_alt, user_location))
 
 def check_eligibility(userId): #Checks if the user has more entries than allowed to
@@ -114,19 +114,19 @@ def check_eligibility(userId): #Checks if the user has more entries than allowed
     for document in cursor:
         userCount += 1
     
-    return userCount <= int(MAXENTRIES)
+    return userCount <= config.MAXENTRIES
 
-def highest(bot, update):
-    cursor = collection.find().sort('altitude', pymongo.DESCENDING).limit(int(CURSOR_SIZE))
-    
-    final_string = doc_cursor(cursor)    
+def sorted_entries(bot, update, order):
+    cursor = collection.find().sort('altitude', order).limit(config.CURSOR_SIZE)
+
+    final_string = doc_cursor(cursor)
     update.message.reply_text(final_string)
 
 def lowest(bot, update):
-    cursor = collection.find().sort('altitude', pymongo.ASCENDING).limit(int(CURSOR_SIZE))
-    
-    final_string = doc_cursor(cursor)
-    update.message.reply_text(final_string)
+    sorted_entries(bot, update, pymongo.ASCENDING)
+
+def highest(bot, update):
+    sorted_entries(bot, update, pymongo.DESCENDING)
 
 def my_altitudes(bot, update): #Retrieve only the current user's altitude
     username = update.message.from_user.username
@@ -181,6 +181,6 @@ dispatcher.add_handler(CommandHandler('highest', highest))
 dispatcher.add_handler(CommandHandler('myaltitudes', my_altitudes))
 dispatcher.add_handler(CommandHandler('help', help))
 
-updater.start_webhook(listen='0.0.0.0', port=int(PORT), url_path=TOKEN)
-updater.bot.setWebhook("https://" + APPNAME + ".herokuapp.com/" + TOKEN)
+updater.start_webhook(listen='0.0.0.0', port=config.PORT, url_path=config.TOKEN)
+updater.bot.setWebhook("https://" + config.APPNAME + ".herokuapp.com/" + config.TOKEN)
 updater.idle()
