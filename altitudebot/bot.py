@@ -117,7 +117,7 @@ def check_eligibility(userId): #Checks if the user has more entries than allowed
     return userCount <= config.MAXENTRIES
 
 def sorted_entries(bot, update, order):
-    cursor = collection.find().sort('altitude', order).limit(config.CURSOR_SIZE)
+    cursor = collection.find().sort('altitude', order)
 
     final_string = doc_cursor(cursor)
     update.message.reply_text(final_string)
@@ -152,7 +152,7 @@ def doc_cursor(cursor): #Method used to navigate the database.
     altered_string = []
     added_users = []
     for document in cursor:
-        if len(altered_string) <= 12:
+        if len(altered_string) <= config.CURSOR_SIZE:
             usr = (document["username"])
             alt = (document["altitude"])
             cty = (document["city"])
