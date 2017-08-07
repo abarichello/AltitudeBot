@@ -148,7 +148,6 @@ def my_altitudes(bot, update): #Retrieve only the current user's altitude
     
 def doc_cursor(cursor): #Method used to navigate the database.
     a = 1
-    symbol = "@"
     altered_string = []
     added_users = []
     for document in cursor:
@@ -159,6 +158,8 @@ def doc_cursor(cursor): #Method used to navigate the database.
             
             if ' ' in usr:
                 symbol = '-'
+            else:
+                symbol = '@'
 
             string = f"{a}. {symbol}{usr} with {alt} meters at {cty}"
             if usr not in added_users:
