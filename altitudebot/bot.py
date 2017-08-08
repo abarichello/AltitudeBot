@@ -86,16 +86,32 @@ def elevation(bot, update, latitude, longitude):
                     username, "\n", rounded_alt, user_location))
         
         #Check and add to database
-        if (check_altitude(rounded_alt)):
+        if check_altitude(rounded_alt) and check_repeated(user_location):
             add_to_database(bot, username, userId, rounded_alt, user_location)
-            update.message.reply_text("Location added to database.")
-        else:
+            update.message.reply_text("Location added to database")
+        elif not check_altitude(altitude):
             update.message.reply_text("There's something wrong with that location! Contact @aBARICHELLO")    
+        elif not check_repeated(update, user_location):
+            update.message.reply_text("That location was already added")
     else:
         update.message.reply_text("You've reached the limit of entries. Contact @aBARICHELLO for deletions.")
 
 def check_altitude(altitude): #Returns false for an unusual location.
     return config.MINVALUE <= altitude <= config.MAXVALUE
+
+def check_repeated(update, user_location):
+    userId = update.message.chat.id
+    cursor = collection.find_one({'userId':userId, 'altitude':user_location})
+    return not cursor
+
+def check_eligibility(userId): #Checks if the user has more entries than allowed to
+    userCount = 0
+    cursor = collection.find({'userId': userId})
+
+    for document in cursor:
+        userCount += 1
+    
+    return userCount <= config.MAXENTRIES
 
 def add_to_database(bot, username, userId, rounded_alt, user_location):
         doc ={"username": username,
@@ -106,15 +122,6 @@ def add_to_database(bot, username, userId, rounded_alt, user_location):
 
         bot.send_message(chat_id=config.DEBUG_CHANNEL ,text="{}|{}|{}".format(
             username, rounded_alt, user_location))
-
-def check_eligibility(userId): #Checks if the user has more entries than allowed to
-    userCount = 0
-    cursor = collection.find({'userId': userId})
-
-    for document in cursor:
-        userCount += 1
-    
-    return userCount <= config.MAXENTRIES
 
 def sorted_entries(bot, update, order):
     cursor = collection.find().sort('altitude', order)
@@ -169,6 +176,11 @@ def doc_cursor(cursor): #Method used to navigate the database.
     final_string = '\n'.join(altered_string)
     return final_string
     
+def clear(bot, update):
+    userId = update.message.chat.id
+    update.message.reply_text("Deleted all your locations")
+    collection.delete_many({'userId': userId})
+
 def help(bot, update):
 	bot.send_message(chat_id=update.message.chat_id, text=HELP_STRING)
 
@@ -180,6 +192,7 @@ dispatcher.add_handler(MessageHandler(Filters.location & (~Filters.forwarded) & 
 dispatcher.add_handler(CommandHandler('lowest', lowest))
 dispatcher.add_handler(CommandHandler('highest', highest))
 dispatcher.add_handler(CommandHandler('myaltitudes', my_altitudes))
+dispatcher.add_handler(CommandHandler('clear', clear))
 dispatcher.add_handler(CommandHandler('help', help))
 
 updater.start_webhook(listen='0.0.0.0', port=config.PORT, url_path=config.TOKEN)
