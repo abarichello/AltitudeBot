@@ -86,24 +86,27 @@ def elevation(bot, update, latitude, longitude):
                     username, "\n", rounded_alt, user_location))
         
         #Check and add to database
-        if check_altitude(rounded_alt) and check_repeated(user_location):
+        if check_altitude(rounded_alt) and check_repeated(update, rounded_alt):
             add_to_database(bot, username, userId, rounded_alt, user_location)
             update.message.reply_text("Location added to database")
         elif not check_altitude(altitude):
             update.message.reply_text("There's something wrong with that location! Contact @aBARICHELLO")    
-        elif not check_repeated(update, user_location):
-            update.message.reply_text("That location was already added")
+        elif not check_repeated(update, rounded_alt):
+            update.message.reply_text("That location was already added! :/")
     else:
-        update.message.reply_text("You've reached the limit of entries. Contact @aBARICHELLO for deletions.")
+        update.message.reply_text("You've reached the limit of entries. Contact @aBARICHELLO for deletions or use /clear to delete ALL")
 
 def check_altitude(altitude): #Returns false for an unusual location.
     return config.MINVALUE <= altitude <= config.MAXVALUE
 
-def check_repeated(update, user_location):
+def check_repeated(update, rounded_alt):
     userId = update.message.chat.id
-    cursor = collection.find_one({'userId':userId, 'altitude':user_location})
-    return not cursor
-
+    cursor = collection.find({'userId': userId, 'altitude': rounded_alt}).count()
+    
+    if cursor is not 0:
+        return False
+    return True
+        
 def check_eligibility(userId): #Checks if the user has more entries than allowed to
     userCount = 0
     cursor = collection.find({'userId': userId})
@@ -178,7 +181,7 @@ def doc_cursor(cursor): #Method used to navigate the database.
     
 def clear(bot, update):
     userId = update.message.chat.id
-    update.message.reply_text("Deleted all your locations")
+    update.message.reply_text("Deleted all your locations! :(")
     collection.delete_many({'userId': userId})
 
 def help(bot, update):
