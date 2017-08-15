@@ -34,6 +34,7 @@ Feedback? Questions? Contact me here: https://t.me/aBARICHELLO
 conn = pymongo.MongoClient(config.MONGODB_URI)
 db = conn.get_default_database()
 collection = db.altitudes
+blacklist = db.blacklist
 
 def start(bot, update):
     button = KeyboardButton("Send your location", request_location=True)
@@ -58,7 +59,7 @@ def elevation(bot, update, latitude, longitude):
     
     update.message.reply_text("Fetching your location...")
     
-    if check_eligibility(userId):
+    if check_eligibility(userId) and check_blacklist(userId):
         #Handle elevation
         elv_response = requests.get(
             f'https://maps.googleapis.com/maps/api/elevation/json?locations={latitude},{longitude}&key={config.GKEY}')
@@ -93,6 +94,8 @@ def elevation(bot, update, latitude, longitude):
             update.message.reply_text("There's something wrong with that location! Contact @aBARICHELLO")    
         elif not check_repeated(update, rounded_alt):
             update.message.reply_text("That location was already added! :/")
+    elif not check_blacklist(userId):
+            update.message.reply_text("I'm sorry but you are blacklisted ;)")
     else:
         update.message.reply_text("You've reached the limit of entries. Contact @aBARICHELLO for deletions or use /clear to delete ALL")
 
@@ -116,15 +119,24 @@ def check_eligibility(userId): #Checks if the user has more entries than allowed
     
     return userCount <= config.MAXENTRIES
 
-def add_to_database(bot, username, userId, rounded_alt, user_location):
-        doc ={"username": username,
-        "userId": userId,
-        "altitude": rounded_alt,
-        "city": user_location}
-        collection.insert_one(doc)
+def check_blacklist(userId): # This method can be done more efficiently
+    userCount = 0
+    cursor = blacklist.find({'userId': userId})
 
-        bot.send_message(chat_id=config.DEBUG_CHANNEL ,text="{}|{}|{}".format(
-            username, rounded_alt, user_location))
+    for document in cursor:
+        userCount += 1
+
+    return userCount == 0
+
+def add_to_database(bot, username, userId, rounded_alt, user_location):
+    doc ={"username": username,
+    "userId": userId,
+    "altitude": rounded_alt,
+    "city": user_location}
+    collection.insert_one(doc)
+
+    bot.send_message(chat_id=config.DEBUG_CHANNEL ,text="{}|{}|{}".format(
+        username, rounded_alt, user_location))
 
 def sorted_entries(bot, update, order):
     cursor = collection.find().sort('altitude', order)
