@@ -1,4 +1,5 @@
 import config
+import strings
 
 from os import environ
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, InlineKeyboardButton,
@@ -37,10 +38,9 @@ collection = db.altitudes
 blacklist = db.blacklist
 
 def start(bot, update):
-    button = KeyboardButton("Send your location " + config.AMERICAS, request_location=True)
+    button = KeyboardButton(strings.SEND_LOCATION + config.AMERICAS, request_location=True)
     keyboard = ReplyKeyboardMarkup([[button]],resize_keyboard=True,one_time_keyboard=True)
-    START_STRING = (config.RICE + """ Hi! Press the button to send me your location! :map:
-Or see the current rank with /lowest and /highest""")
+    START_STRING = (config.RICE + strings.START)
     update.message.reply_text(START_STRING, reply_markup=keyboard)
 
 def location(bot, update):
@@ -57,7 +57,7 @@ def elevation(bot, update, latitude, longitude):
             lName = ' '
         username = f'{fName} {lName}'
     
-    update.message.reply_text("Fetching your location...")
+    update.message.reply_text(strings.FETCHING)
     
     if check_eligibility(userId) and check_blacklist(userId):
         # Handle elevation
@@ -78,8 +78,8 @@ def elevation(bot, update, latitude, longitude):
         except IndexError as e:
             print(e)
             print(geo_data)
-            update.message.reply_text("Something went wrong with your location.")
-            update.message.reply_text("Try another location or forward it to @aBARICHELLO")
+            update.message.reply_text(strings.LOCATION_ERROR)
+            update.message.reply_text(strings.LOCATION_ERROR1)
 
         # Respond with altitude
         update.message.reply_text(
@@ -89,15 +89,15 @@ def elevation(bot, update, latitude, longitude):
         # Check and add to database
         if check_altitude(rounded_alt) and check_repeated(update, rounded_alt):
             add_to_database(bot, username, userId, rounded_alt, user_location)
-            update.message.reply_text("Location added to database")
+            update.message.reply_text(strings.ADDEDTODB)
         elif not check_altitude(altitude):
-            update.message.reply_text("There's something wrong with that location! Contact @aBARICHELLO")    
+            update.message.reply_text(strings.LOCATION_ERROR)    
         elif not check_repeated(update, rounded_alt):
-            update.message.reply_text("That location was already added! :/")
+            update.message.reply_text(strings.REPEATED_LOCATION)
     elif not check_blacklist(userId):
-            update.message.reply_text("I'm sorry but you are blacklisted ;)")
+            update.message.reply_text(strings.BLACKLISTED)
     else:
-        update.message.reply_text("You've reached the limit of entries. Contact @aBARICHELLO for deletions or use /clear to delete ALL")
+        update.message.reply_text(strings.LIMIT_REACHED)
 
 def check_altitude(altitude): # Returns false for an unusual location.
     return config.MINVALUE <= altitude <= config.MAXVALUE
@@ -193,14 +193,14 @@ def doc_cursor(cursor): # Method used to navigate the database.
     
 def clear(bot, update):
     userId = update.message.chat.id
-    update.message.reply_text("Deleted all your locations! :(")
+    update.message.reply_text(strings.DELETED_LOCATION)
     collection.delete_many({'userId': userId})
 
 def help(bot, update):
 	bot.send_message(chat_id=update.message.chat_id, text=HELP_STRING)
 
 def unknown(bot, update):
-    bot.send_message(chat_id=update.message.chat_id, text="That command does not exist!")
+    bot.send_message(chat_id=update.message.chat_id, text=strings.NO_COMMAND)
 
 dispatcher.add_handler(CommandHandler('start', start))
 dispatcher.add_handler(MessageHandler(Filters.location & (~Filters.forwarded) & Filters.reply, location))
