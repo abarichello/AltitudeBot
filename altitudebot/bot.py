@@ -60,14 +60,14 @@ def elevation(bot, update, latitude, longitude):
     update.message.reply_text("Fetching your location...")
     
     if check_eligibility(userId) and check_blacklist(userId):
-        #Handle elevation
+        # Handle elevation
         elv_response = requests.get(
             f'https://maps.googleapis.com/maps/api/elevation/json?locations={latitude},{longitude}&key={config.GKEY}')
         elevation_data = elv_response.json()
         altitude = (elevation_data["results"][0]["elevation"])
         rounded_alt = round(altitude, 3)
         
-        #Handle city
+        # Handle city
         result_type = 'country|administrative_area_level_1|administrative_area_level_2'
         geo_response = requests.get(
             'https://maps.googleapis.com/maps/api/geocode/json?latlng={},{}&key={}'.format(
@@ -81,12 +81,12 @@ def elevation(bot, update, latitude, longitude):
             update.message.reply_text("Something went wrong with your location.")
             update.message.reply_text("Try another location or forward it to @aBARICHELLO")
 
-        #Respond with altitude
+        # Respond with altitude
         update.message.reply_text(
                 "Hi, @{}!{}Your current height is: {} meters at the location of {}".format(
                     username, "\n", rounded_alt, user_location))
         
-        #Check and add to database
+        # Check and add to database
         if check_altitude(rounded_alt) and check_repeated(update, rounded_alt):
             add_to_database(bot, username, userId, rounded_alt, user_location)
             update.message.reply_text("Location added to database")
@@ -99,18 +99,16 @@ def elevation(bot, update, latitude, longitude):
     else:
         update.message.reply_text("You've reached the limit of entries. Contact @aBARICHELLO for deletions or use /clear to delete ALL")
 
-def check_altitude(altitude): #Returns false for an unusual location.
+def check_altitude(altitude): # Returns false for an unusual location.
     return config.MINVALUE <= altitude <= config.MAXVALUE
 
-def check_repeated(update, rounded_alt):
+def check_repeated(update, rounded_alt): # Checks if the user has already sent this location
     userId = update.message.chat.id
     cursor = collection.find({'userId': userId, 'altitude': rounded_alt}).count()
-    
-    if cursor is not 0:
-        return False
-    return True
+
+    return cursor is 0
         
-def check_eligibility(userId): #Checks if the user has more entries than allowed to
+def check_eligibility(userId): # Checks if the user has more entries than allowed to
     userCount = 0
     cursor = collection.find({'userId': userId})
 
@@ -119,14 +117,12 @@ def check_eligibility(userId): #Checks if the user has more entries than allowed
     
     return userCount <= config.MAXENTRIES
 
-def check_blacklist(userId): # This method can be done more efficiently
-    userCount = 0
+def check_blacklist(userId): # Checks if the user is in the blacklisted database
     cursor = blacklist.find({'userId': userId})
 
     for document in cursor:
-        userCount += 1
-
-    return userCount == 0
+        return False
+    return True
 
 def add_to_database(bot, username, userId, rounded_alt, user_location):
     doc ={"username": username,
@@ -150,7 +146,7 @@ def lowest(bot, update):
 def highest(bot, update):
     sorted_entries(bot, update, pymongo.DESCENDING)
 
-def my_altitudes(bot, update): #Retrieve only the current user's altitude
+def my_altitudes(bot, update):
     username = update.message.from_user.username
     cursor = collection.find({'username': username}).sort(username, pymongo.DESCENDING)
     cursor.limit(20)
@@ -168,7 +164,7 @@ def my_altitudes(bot, update): #Retrieve only the current user's altitude
     final_string = '\n'.join(altered_string)
     update.message.reply_text(final_string)
     
-def doc_cursor(cursor): #Method used to navigate the database.
+def doc_cursor(cursor): # Method used to navigate the database.
     a = 1
     altered_string = []
     added_users = []
