@@ -37,9 +37,9 @@ collection = db.altitudes
 blacklist = db.blacklist
 
 def start(bot, update):
-    button = KeyboardButton("Send your location", request_location=True)
+    button = KeyboardButton("Send your location " + config.AMERICAS, request_location=True)
     keyboard = ReplyKeyboardMarkup([[button]],resize_keyboard=True,one_time_keyboard=True)
-    START_STRING = ("""Hi! Press the button to send me your location!
+    START_STRING = (config.RICE + """ Hi! Press the button to send me your location! :map:
 Or see the current rank with /lowest and /highest""")
     update.message.reply_text(START_STRING, reply_markup=keyboard)
 
@@ -68,7 +68,7 @@ def elevation(bot, update, latitude, longitude):
         rounded_alt = round(altitude, 3)
         
         # Handle city
-        result_type = 'country|administrative_area_level_1|administrative_area_level_2'
+        # result_type = 'country|administrative_area_level_1|administrative_area_level_2'
         geo_response = requests.get(
             'https://maps.googleapis.com/maps/api/geocode/json?latlng={},{}&key={}'.format(
                 latitude, longitude, config.GKEY))
@@ -83,7 +83,7 @@ def elevation(bot, update, latitude, longitude):
 
         # Respond with altitude
         update.message.reply_text(
-                "Hi, @{}!{}Your current height is: {} meters at the location of {}".format(
+                config.WORLD + " Hi, @{}!{}Your current height is: {} meters at the location of {}".format(
                     username, "\n", rounded_alt, user_location))
         
         # Check and add to database
@@ -134,10 +134,14 @@ def add_to_database(bot, username, userId, rounded_alt, user_location):
     bot.send_message(chat_id=config.DEBUG_CHANNEL ,text="{}|{}|{}".format(
         username, rounded_alt, user_location))
 
-def sorted_entries(bot, update, order):
+def sorted_entries(bot, update, order): # Sorts the database (Ascending or Descending)
     cursor = collection.find().sort('altitude', order)
 
-    final_string = doc_cursor(cursor)
+    header = config.MOUNT_FUJI + " Highest players: \n"
+    if order is pymongo.ASCENDING:
+        header = config.WAVE + " Lowest players \n"
+    
+    final_string = header + doc_cursor(cursor)
     update.message.reply_text(final_string)
 
 def lowest(bot, update):
