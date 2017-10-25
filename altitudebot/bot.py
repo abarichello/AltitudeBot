@@ -48,7 +48,7 @@ def location(bot, update):
     elevation(bot, update, location.latitude, location.longitude)
 
 def elevation(bot, update, latitude, longitude):
-    userId = update.message.chat.id
+    user_id = update.message.chat.id
     username = update.message.from_user.username
     if not username:
         fName = update.message.from_user.first_name
@@ -59,7 +59,7 @@ def elevation(bot, update, latitude, longitude):
     
     update.message.reply_text(strings.FETCHING)
     
-    if check_eligibility(userId) and check_blacklist(userId):
+    if check_eligibility(user_id) and check_blacklist(user_id):
         # Handle elevation
         elv_response = requests.get(
             f'https://maps.googleapis.com/maps/api/elevation/json?locations={latitude},{longitude}&key={config.GKEY}')
@@ -88,13 +88,13 @@ def elevation(bot, update, latitude, longitude):
         
         # Check and add to database
         if check_altitude(rounded_alt) and check_repeated(update, rounded_alt):
-            add_to_database(bot, username, userId, rounded_alt, user_location)
+            add_to_database(bot, username, user_id, rounded_alt, user_location)
             update.message.reply_text(strings.ADDEDTODB)
         elif not check_altitude(altitude):
             update.message.reply_text(strings.LOCATION_ERROR)    
         elif not check_repeated(update, rounded_alt):
             update.message.reply_text(strings.REPEATED_LOCATION)
-    elif not check_blacklist(userId):
+    elif not check_blacklist(user_id):
             update.message.reply_text(strings.BLACKLISTED)
     else:
         update.message.reply_text(strings.LIMIT_REACHED)
@@ -103,32 +103,31 @@ def check_altitude(altitude): # Returns false for an unusual location.
     return config.MINVALUE <= altitude <= config.MAXVALUE
 
 def check_repeated(update, rounded_alt): # Checks if the user has already sent this location
-    userId = update.message.chat.id
-    cursor = collection.find({'userId': userId, 'altitude': rounded_alt}).count()
+    user_id = update.message.chat.id
+    count = collection.find({'userId': user_id, 'altitude': rounded_alt}).count()
 
-    return cursor is 0
+    return count is 0
         
-def check_eligibility(userId): # Checks if the user has more entries than allowed to
-    userCount = 0
-    cursor = collection.find({'userId': userId})
+def check_eligibility(user_id): # Checks if the user has more entries than allowed to
+    count = collection.find({'userId': user_id}).count()
 
-    for document in cursor:
-        userCount += 1
-    
-    return userCount <= config.MAXENTRIES
+    return count <= config.MAXENTRIES
 
-def check_blacklist(userId): # Checks if the user is in the blacklisted database
-    cursor = blacklist.find({'userId': userId})
+def check_blacklist(user_id): # Checks if the user is in the blacklisted database
+    cursor = blacklist.find({'userId': user_id})
 
     for document in cursor:
         return False
     return True
 
-def add_to_database(bot, username, userId, rounded_alt, user_location):
-    doc ={"username": username,
-    "userId": userId,
-    "altitude": rounded_alt,
-    "city": user_location}
+def add_to_database(bot, username, user_id, rounded_alt, user_location):
+    doc = {
+        "username": username,
+        "userId": user_id,
+        "altitude": rounded_alt,
+        "city": user_location,
+    }
+
     collection.insert_one(doc)
 
     bot.send_message(chat_id=config.DEBUG_CHANNEL ,text="{}|{}|{}".format(
@@ -192,9 +191,9 @@ def doc_cursor(cursor): # Method used to navigate the database.
     return final_string
     
 def clear(bot, update):
-    userId = update.message.chat.id
+    user_id = update.message.chat.id
     update.message.reply_text(strings.DELETED_LOCATION)
-    collection.delete_many({'userId': userId})
+    collection.delete_many({'userId': user_id})
 
 def help(bot, update):
 	bot.send_message(chat_id=update.message.chat_id, text=HELP_STRING)
